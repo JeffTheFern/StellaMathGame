@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stella's Game</title>
+    <style>
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            flex-direction: column;
+        }
+
+        canvas {
+            border: 5px solid black; /* Outline around the canvas */
+            margin-bottom: 20px; /* Space for the buttons */
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            position: absolute;
+            bottom: 20px;
+        }
+
+        .text{
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            position: absolute;
+            top: 10px;
+            font-size: 50px;
+        }
+
+        .sign-button {
+            font-size: 24px;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        .numbers {
+            font-size: 48px;
+            font-family: Arial, sans-serif;
+            color: black;
+        }
+        #digitInputContainer {
+    position: absolute;
+    top: 50%; /* Place the container below the sum */
+    left: 50%;
+    transform: translateX(-50%); /* Center it horizontally */
+    display: flex;
+    justify-content: center; /* Align inputs side by side */
+    font-size: 20px;
+    padding: 0 10px; /* Add some padding if needed */
+    width: 120px; /* Fixed width to prevent shifting when the number of digits changes */
+}
+.digitInput {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    text-align: center;
+    margin: 0 5px; /* Space between inputs */
+}
+
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+<div id="digitInputContainer"></div> <!-- Container for the digit input boxes -->
+<button id="clearCanvasButton">Clear Canvas</button>
+
+<div class="text">
+    Math Game For Stella
+</div>
+
+<div class="control-container">
+    <!-- Dropdown for number length selection -->
+    <select id="numLength" onchange="updateNumberLength()">
+        <option value="1">1 Digit</option>
+        <option value="2">2 Digits</option>
+        <option value="3">3 Digits</option>
+        <option value="4">4 Digits</option>
+        <option value="5">5 Digits</option>
+    </select>
+
+    <!-- Buttons for + and - -->
+    <select id="sign-button" onchange="updateSign()">
+        <option value="+"> + </option>
+        <option value="-"> - </option>
+    </select>
+</div>
+<script>
+// Function to resize the canvas to fit the screen size
+function resizeCanvas() {
+    const canvas = document.getElementById('myCanvas');
+    
+    // Get the device pixel ratio (this will give us the scaling factor for high-DPI screens)
+    const ratio = window.devicePixelRatio || 1;
+
+    // Set logical width and height (what you want to display)
+    const logicalWidth = window.innerWidth - 200;
+    const logicalHeight = window.innerHeight - 200;
+
+    // Apply device pixel ratio scaling for high-DPI devices
+    canvas.width = logicalWidth * ratio;
+    canvas.height = logicalHeight * ratio;
+
+    // Set the canvas display size to match the logical width and height
+    canvas.style.width = `${logicalWidth}px`;
+    canvas.style.height = `${logicalHeight}px`;
+
+    // Adjust the drawing context (this ensures that drawings scale correctly on high-DPI screens)
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    // Call your existing drawing functions to redraw the canvas
+    displayNumbers();
+    generateSumInputs();
+}
+
+
+    // Drawing logic
+    let isDrawing = false;
+    let drawColor = 'black'; // Default draw color
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Function to start drawing when the mouse is pressed or touch starts
+    function startDrawing(e) {
+        isDrawing = true;
+        draw(e);
+    }
+
+    // Function to stop drawing when the mouse is released or touch ends
+    function stopDrawing() {
+        isDrawing = false;
+        ctx.beginPath(); // Start a new path for clean drawing
+    }
+
+    // Function to draw on the canvas
+    function draw(e) {
+        if (!isDrawing) return;
+
+        // Get mouse position or touch position
+        const x = e.clientX || e.touches[0].clientX;
+        const y = e.clientY || e.touches[0].clientY;
+
+        // Adjust for canvas offset
+        const canvasRect = canvas.getBoundingClientRect();
+        const offsetX = x - canvasRect.left;
+        const offsetY = y - canvasRect.top;
+
+        ctx.lineWidth = 5; // Set the line width
+        ctx.lineCap = 'round'; // Round line endings
+        ctx.strokeStyle = drawColor; // Set the line color to the current color
+
+        // Draw on the canvas while the mouse is pressed
+        ctx.lineTo(offsetX, offsetY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(offsetX, offsetY); // Move to current mouse position
+    }
+
+    // Function to draw the text at the top-left corner
+    function drawText() {
+        ctx.font = '24px Arial'; // Set the font size and type
+        ctx.fillStyle = 'black'; // Set the text color
+    }
+
+    // Function to change the drawing color
+    function changeColor(color) {
+        drawColor = color; // Set the new color for drawing
+    }
+
+    let num1, num2;
+    let numbersGenerated = false; // Flag to check if numbers are already generated
+
+    function displayNumbers() {
+    const lengthSelect = document.getElementById('numLength');
+    const numLength = parseInt(lengthSelect.value);
+
+    // Generate the numbers only if they haven't been generated yet
+    if (!numbersGenerated) {
+        num1 = generateRandomNumber(numLength);
+        num2 = generateRandomNumber(numLength);
+        while (num1-num2 < 0){
+        num1 = generateRandomNumber(numLength);
+        num2 = generateRandomNumber(numLength);
+    }
+        numbersGenerated = true; // Mark numbers as generated
+    }
+
+    // Clear the canvas before drawing new numbers
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Set font and text color
+    ctx.font = '144px Arial'; 
+    ctx.fillStyle = 'black'; 
+
+    // Calculate the center of the canvas
+    const centerX = canvas.width / 4;
+
+    // Measure the width of the first number
+    const num1Width = ctx.measureText(num1).width;
+    const num2Width = ctx.measureText(num2).width;
+    const sign = getSelectedSign();
+    const num2WithSignWidth = ctx.measureText(num2).width;
+
+
+    // Draw the first number centered
+    ctx.fillText(num1, centerX - num1Width / 2, canvas.height / 4 - 160);
+
+    ctx.fillText(num2, centerX - num2WithSignWidth / 2, canvas.height / 4);
+    ctx.fillText(sign, centerX - num2WithSignWidth / 2 - 100, canvas.height / 4);
+
+    // Draw a line under the second number
+    const lineY = canvas.height / 4 + 40; // Y position for the line (below the second number)
+    ctx.beginPath();
+    ctx.moveTo(centerX - num2WithSignWidth / 2 - 30, lineY); // Start from the left side of the second number
+    ctx.lineTo(centerX + num2WithSignWidth / 2 + 30, lineY); // End at the right side of the second number
+    ctx.strokeStyle = 'black'; // Set the color of the line
+    ctx.lineWidth = 4; // Set the thickness of the line
+    ctx.stroke(); // Actually draw the line
+
+    stopDrawing();
+}
+
+
+
+    // Event listeners for mouse and touch events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mousemove', draw);
+
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchmove', draw);
+
+    // Call resizeCanvas on window resize and orientation change
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', resizeCanvas);
+
+    // Initial canvas setup
+    resizeCanvas();
+
+    // Function to clear the canvas
+function clearCanvas() {
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the entire canvas
+    drawText(); // Optionally redraw static text if needed
+    displayNumbers(); // Redraw the numbers after clearing
+}
+
+// Add event listener for the "Clear Canvas" button
+document.getElementById('clearCanvasButton').addEventListener('click', clearCanvas);
+displayNumbers();
+
+function checkSum() {
+    const digitInputs = document.querySelectorAll('.digitInput');
+    let sumInput = '';
+
+    // Collect the values from the input fields
+    digitInputs.forEach(input => {
+        sumInput += input.value;
+    });
+
+    // Convert the input value to an integer
+    const sum = parseInt(sumInput);
+
+    // Get the selected sign (+ or -)
+    const sign = getSelectedSign();
+
+    // Check if the sum matches num1 + num2 or num1 - num2
+    let correctAnswer;
+    if (sign === '+') {
+        correctAnswer = num1 + num2;
+    } else if (sign === '-') {
+        correctAnswer = num1 - num2;
+    } else if (sign === '+-') {
+        // If both + and - are selected, check for both the sum and difference
+        if (sum === num1 + num2 || sum === num1 - num2) {
+            correctAnswer = sum;
+        } else {
+            return; // Incorrect, do nothing
+        }
+    }
+
+    // If the sum is correct, generate new numbers and input fields
+    if (sum === correctAnswer) {
+        numbersGenerated = false; // Reset the flag to generate new numbers
+        displayNumbers(); // Generate and display new numbers
+        generateSumInputs(); // Re-generate the digit input fields
+    }
+}
+
+
+function generateRandomNumber(digits) {
+    const min = Math.pow(10, digits - 1); // The minimum value for the given number of digits
+    const max = Math.pow(10, digits) - 1; // The maximum value for the given number of digits
+    return Math.floor(Math.random() * (max - min + 1)) + min; // Generate a random number in this range
+}
+
+function generateSumInputs() {
+    const sum = num1 + num2;
+    const sumStr = sum.toString(); // Convert sum to string to get digits
+    const container = document.getElementById('digitInputContainer');
+
+    // Clear any previous inputs
+    container.innerHTML = '';
+
+    // Generate an input for each digit of the sum
+    for (let i = 0; i < sumStr.length; i++) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.classList.add('digitInput');
+        input.maxLength = 1;
+        input.value = '0'; // Set default value as 0
+        container.appendChild(input);
+    }
+
+    // Calculate the width of the container and the sum
+    const containerWidth = container.offsetWidth;
+    const sumWidth = ctx.measureText(sumStr).width; // Measure the width of the sum text
+    const centerX = canvas.width / 4; // Center of the canvas
+
+    // Adjust the container's position to ensure it is centered under the sum
+    container.style.left = `${centerX - containerWidth / 4 + 130}px`; // Center the container horizontally
+    container.style.top = `${canvas.height / 4 + 150}px`; // Position the container below the sum
+
+        // Allow time for the input fields to be generated before setting focus
+        setTimeout(() => {
+        const firstInput = document.querySelector('.digitInput');
+        if (firstInput) {
+            firstInput.focus(); // Focus on the first input
+        }
+    }, 50);  // Small delay (50ms)
+}
+function getSelectedSign() {
+    const signSelect = document.getElementById('sign-button');
+    return signSelect.value;
+}
+
+document.getElementById('digitInputContainer').addEventListener('input', checkSum);
+// Event listener to update the canvas when the sign changes
+document.getElementById('sign-button').addEventListener('change', function() {
+    displayNumbers();  // Redraw the numbers with the updated sign
+});
+    generateSumInputs();
+
+</script>
+
+</body>
+</html>
