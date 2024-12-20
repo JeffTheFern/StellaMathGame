@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stella's Game</title>
+    <style>
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            flex-direction: column;
+        }
+
+        canvas {
+            border: 5px solid black; /* Outline around the canvas */
+            margin-bottom: 20px; /* Space for the buttons */
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            position: absolute;
+            bottom: 20px;
+        }
+
+        .text {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            position: absolute;
+            top: 10px;
+            font-size: 50px;
+        }
+
+        .sign-button {
+            font-size: 24px;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        .numbers {
+            font-size: 48px;
+            font-family: Arial, sans-serif;
+            color: black;
+        }
+
+        #answerInputContainer {
+            position: absolute;
+            top: 60%; /* Place the container below the sum */
+            left: 50%;
+            transform: translate(-50%, -50%); /* Center it */
+            display: flex;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        #answerInput {
+            width: 160px;
+            height: 60px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        #submitButton {
+            margin-left: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+<div id="answerInputContainer">
+    <input type="number" id="answerInput" placeholder="Your Answer">
+    <button id="submitButton">Submit</button>
+</div>
+<select id="displayMode" onchange="updateDisplayMode()">
+    <option value="horizontal" selected >Horizontal</option>
+    <option value="vertical">Vertical</option>
+</select>
+
+<div class="text">
+    Math Game for Stella
+</div>
+
+<div class="control-container">
+    <select id="numLength" onchange="updateNumberLength()">
+        <option value="1">1 Digit</option>
+        <option value="2">2 Digits</option>
+        <option value="3">3 Digits</option>
+        <option value="4">4 Digits</option>
+        <option value="5">5 Digits</option>
+    </select>
+
+    <select id="sign-button" onchange="updateSign()">
+        <option value="+"> + </option>
+        <option value="-"> - </option>
+    </select>
+</div>
+
+<script>
+// Function to resize the canvas to fit the screen size
+function resizeCanvas() {
+    const canvas = document.getElementById('myCanvas');
+    const ratio = window.devicePixelRatio || 1;
+    const logicalWidth = window.innerWidth - 200;
+    const logicalHeight = window.innerHeight - 200;
+    canvas.width = logicalWidth * ratio;
+    canvas.height = logicalHeight * ratio;
+    canvas.style.width = `${logicalWidth}px`;
+    canvas.style.height = `${logicalHeight}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    displayNumbers();
+}
+
+// Drawing logic
+let isDrawing = false;
+let drawColor = 'black';
+const canvas = document.getElementById('myCanvas');
+const ctx = canvas.getContext('2d');
+
+function startDrawing(e) {
+    isDrawing = true;
+    draw(e);
+}
+
+function stopDrawing() {
+    isDrawing = false;
+    ctx.beginPath();
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    const x = e.clientX || e.touches[0].clientX;
+    const y = e.clientY || e.touches[0].clientY;
+    const canvasRect = canvas.getBoundingClientRect();
+    const offsetX = x - canvasRect.left;
+    const offsetY = y - canvasRect.top;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = drawColor;
+    ctx.lineTo(offsetX, offsetY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(offsetX, offsetY);
+}
+
+let num1, num2;
+let numbersGenerated = false;
+
+function displayNumbers() {
+    const lengthSelect = document.getElementById('numLength');
+    const displayMode = document.getElementById('displayMode').value; // Get selected display mode
+    const numLength = parseInt(lengthSelect.value);
+
+    if (!numbersGenerated) {
+        num1 = generateRandomNumber(numLength);
+        num2 = generateRandomNumber(numLength);
+        while (num1 - num2 < 0) {
+            num1 = generateRandomNumber(numLength);
+            num2 = generateRandomNumber(numLength);
+        }
+        numbersGenerated = true;
+    } 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '144px Arial';
+    ctx.fillStyle = 'black';
+    const centerX = canvas.width / 4;
+    const num1Width = ctx.measureText(num1).width;
+    const num2Width = ctx.measureText(num2).width;
+    const sign = getSelectedSign();
+    if (displayMode == 'vertical'){
+    ctx.fillText(num1, centerX - num1Width / 2, canvas.height / 4 - 160);
+    ctx.fillText(num2, centerX - num2Width / 2, canvas.height / 4);
+    ctx.fillText(sign, centerX - num2Width / 2 - 100, canvas.height / 4);
+    const lineY = canvas.height / 4 + 40;
+    ctx.beginPath();
+    ctx.moveTo(centerX - num2Width / 2 - 30, lineY);
+    ctx.lineTo(centerX + num2Width / 2 + 30, lineY);
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    stopDrawing();
+    } else if (displayMode == 'horizontal'){
+    const mathProblem = num1 + sign + num2 + '='
+    ctx.fillText(mathProblem, centerX - num2Width - 100, canvas.height / 4)
+    }
+}
+document.getElementById('sign-button').addEventListener('change', function() {
+    displayNumbers();  // Redraw the numbers with the updated sign
+});
+document.getElementById('displayMode').addEventListener('change', function() {
+    displayNumbers();  // Redraw the numbers with the updated sign
+});
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('touchstart', startDrawing);
+canvas.addEventListener('touchend', stopDrawing);
+canvas.addEventListener('touchmove', draw);
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+resizeCanvas();
+
+function addEnterKeyListener() {
+    const answerInput = document.getElementById('answerInput'); // Assuming the input field ID is 'answerInput'
+    
+    answerInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            checkSum(); // Call your function to check the answer or submit the form
+        }
+    });
+}
+addEnterKeyListener();
+function clearCanvas() {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    displayNumbers();
+}
+
+document.getElementById('submitButton').addEventListener('click', checkSum);
+
+displayNumbers();
+
+function checkSum() {
+    const answerInput = document.getElementById('answerInput');
+    const answer = parseInt(answerInput.value);
+    const sign = getSelectedSign();
+    const correctAnswer = sign === '+' ? num1 + num2 : num1 - num2;
+
+    if (answer === correctAnswer) {
+        ctx.fillStyle = 'lightgreen';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        setTimeout(newQuestion, 1000);
+    } else {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        setTimeout(() => displayNumbers(), 1000);
+    }
+}
+
+function newQuestion() {
+    numbersGenerated = false;
+    document.getElementById('answerInput').value = '';
+    displayNumbers();
+}
+
+function generateRandomNumber(digits) {
+    const min = Math.pow(10, digits - 1);
+    const max = Math.pow(10, digits) - 1;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getSelectedSign() {
+    const signSelect = document.getElementById('sign-button');
+    return signSelect.value;
+}
+</script>
+</body>
+</html>
